@@ -1,0 +1,9 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: rgb(54, 77, 97);
+}
+
+#root {
+  font-family: 'Calibri', sans-serif;
+}

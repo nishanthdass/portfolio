@@ -1,0 +1,28 @@
+
+  
+.section-column-left, .section-column-right {
+    flex: 1;
+    border: 1px solid #ddd;
+  }
+
+  
+.section-column-left {
+    text-align: left;
+  }
+  
+.section-column-right {
+    text-align: right;
+  }
+  
+.column-coursework-label {
+    width: 12%;
+    border: 1px solid #ddd;
+    text-align: right;
+  }
+  
+.column-coursework-value {
+    width: 88%;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  

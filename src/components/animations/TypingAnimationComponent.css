@@ -1,0 +1,30 @@
+
+.none-animation {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0 auto;
+    letter-spacing: .15em;
+    border-right: .10em solid rgb(96, 96, 96);
+    animation: blink-caret 0.75s step-start 4, end-caret 0s forwards .75s;
+  }
+  
+  .typing-animation {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0 auto;
+    letter-spacing: .15em;
+    border-right: .10em solid rgb(96, 96, 96);
+    animation: blink-caret .75s step-end infinite;
+  }
+  
+  /* The typewriter cursor blinking effect */
+  @keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: rgb(96, 96, 96); }
+  }
+  
+  /* The transparent end state */
+  @keyframes end-caret {
+    to { border-color: transparent; }
+  }
+  

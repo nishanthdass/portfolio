@@ -1,0 +1,16 @@
+.slot-machine {
+    display: flex;           /* Ensures that the boxes are aligned in a row */
+    gap: 10px;               /* Adds some space between the boxes */
+    justify-content: center; /* Centers the boxes horizontally */
+    align-items: center;     /* Centers the boxes vertically */
+  }
+  
+  .slot-box {
+    width: 50px;             /* Width of each box */
+    height: 50px;            /* Height of each box */
+    display: flex;
+    align-items: center;     /* Centers the content vertically */
+    justify-content: center; /* Centers the content horizontally */
+    border: 1px solid #ccc;  /* Adds a border to each box */
+    font-size: 24px;         /* Font size for the content inside the box */
+  }

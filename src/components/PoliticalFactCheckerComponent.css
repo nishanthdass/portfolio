@@ -1,0 +1,37 @@
+.box {
+
+    height: 60px;
+    width: 60px;
+  }
+
+  .box-1 {
+    background-color: lightblue;
+    padding: 5px;
+    border: 5px;
+    margin: 1px;
+    /* Additional styles specific to box-1 */
+  }
+  
+  .box-2 {
+
+    background-color: lightgreen;
+    padding: 5px;
+    border: 5px;
+    margin: 1px;
+    /* Additional styles specific to box-2 */
+  }
+
+.pfc-demo {
+    border: 1px solid black;
+    height: 800px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.pfc-project-pic {
+    width: 100%; /* Ensures the image fits within the column */
+    height: auto; /* Maintains aspect ratio */
+    display: block; /* Remove extra space below the image */
+    
+}

@@ -1,0 +1,12 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; 
+  width: 100%;
+  max-width: 1200px;
+  min-width: 650px;
+  padding: 20px; 
+  box-sizing: border-box;
+  margin: 0 auto; 
+}
