@@ -11,7 +11,6 @@ function useDragger(
 ) {
   const isClicked = useRef<boolean>(false);
   const targettIdRef = useRef<string | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   const coords = useRef<{ startX: number; startY: number; lastX: number; lastY: number }>({
     startX: 0,
@@ -62,20 +61,10 @@ function useDragger(
       target.style.cursor = "grab";
       target.releasePointerCapture(e.pointerId);
 
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (!isClicked.current) return;
-
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-
-      animationFrameRef.current = requestAnimationFrame(() => {
 
           let nextX = e.clientX - coords.current.startX + coords.current.lastX;
           let nextY = e.clientY - coords.current.startY + coords.current.lastY;
@@ -158,10 +147,8 @@ function useDragger(
                 }
 
                 if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft < pushRight && pushUp < pushDown) {
-                  console.log("bottom right")
                   const newLeft = childLeft - pushUp;
                   const maxLeft = targetRect.left - child.clientWidth;
-                  console.log(newLeft, maxLeft)
                   const adjustedLeft = Math.max(newLeft, maxLeft); 
                   onPositionChange(child.id, { 
                     right: adjustedLeft + child.clientWidth, 
@@ -170,7 +157,6 @@ function useDragger(
                     bottom: targetRect.top});
                     
                 } else if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp < pushDown) {
-                  console.log("bottom left")
                   const newLeft = childLeft + pushUp;
                   const maxLeft = targetRect.right - child.clientWidth;
                   const adjustedLeft = Math.max(newLeft, maxLeft); 
@@ -182,10 +168,8 @@ function useDragger(
                 }
 
                 if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft < pushRight && pushUp > pushDown) {
-                  console.log("top right")
                   const newLeft = childLeft - pushDown;
                   const maxLeft = targetRect.left - child.clientWidth;
-                  console.log(newLeft, maxLeft)
                   const adjustedLeft = Math.max(newLeft, maxLeft); 
                   onPositionChange(child.id, { 
                     right: adjustedLeft - child.clientWidth, 
@@ -194,23 +178,20 @@ function useDragger(
                     bottom: targetRect.bottom + child.clientHeight});
                     
                 } 
-                // else if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp > pushDown) {
-                //   console.log("top left")
-                //   const newLeft = childLeft - pushUp;
-                //   const maxLeft = targetRect.right - child.clientWidth;
-                //   const adjustedLeft = Math.max(newLeft, maxLeft); 
-                //   onPositionChange(child.id, { 
-                //     right: adjustedLeft + child.clientWidth, 
-                //     left: adjustedLeft, 
-                //     top: targetRect.top - child.clientHeight, // Smoothly move upward
-                //     bottom: targetRect.top});
-                // }
+                else if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp > pushDown) {
+                  const newLeft = childLeft - pushDown;
+                  const maxLeft = targetRect.right - child.clientWidth;
+                  const adjustedLeft = Math.max(newLeft, maxLeft); 
+                  onPositionChange(child.id, { 
+                    right: adjustedLeft - child.clientWidth, 
+                    left: adjustedLeft, 
+                    top: targetRect.bottom , // Smoothly move upward
+                    bottom: targetRect.bottom + child.clientHeight});
+                }
               }
           }
 
           onPositionChange(id, { left: nextX, top: nextY, right: nextX + target.clientWidth, bottom: nextY + target.clientHeight })
-        
-      });
     };
 
     target.addEventListener("pointerdown", onPointerDown);
@@ -224,9 +205,6 @@ function useDragger(
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerleave", onPointerUp);
 
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
     };
 
     return cleanup;

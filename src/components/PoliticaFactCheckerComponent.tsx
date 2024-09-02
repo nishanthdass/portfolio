@@ -15,17 +15,17 @@ const PoliticaFactCheckerComponent: React.FC = () => {
   // Initialize springs with `left`, `top`, `right`, and `bottom` for all animations
   const springs = Object.keys(positions).reduce((acc, key) => {
     const [props, api] = useSpring(() => ({
-      immediate: key === targetId,
+      // immediate: key === targetId,
       left: positions[key].left,
       top: positions[key].top,
       right: positions[key].right,
       bottom: positions[key].bottom,
       scale: 1,
       config: {
-        mass: 7,
-        friction: 120,
-        tension: 360,
-        precision: 0.1,
+        mass: 8,
+        friction: 80,
+        tension: 40,
+        precision: 0.0001,
       },
     }));
     acc[key] = { props, api };
@@ -92,10 +92,6 @@ const PoliticaFactCheckerComponent: React.FC = () => {
             key={id}
             id={id}
             className={className}
-            // left={left} 
-            // top={top}
-            // right={right}
-            // bottom={bottom}
             left={springs[id].props.left.get()} 
             top={springs[id].props.top.get()}
             right={springs[id].props.right.get()}
