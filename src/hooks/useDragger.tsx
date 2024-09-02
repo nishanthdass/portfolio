@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 function useDragger(
   id: string,
   initialLeft: number,
   initialTop: number,
-  onPositionChange: (id: string, newPosition: { left: number; top: number }) => void,
+  initialRight: number,
+  initialBottom: number,
+  onPositionChange: (id: string, newPosition: { left: number; top: number; right: number; bottom: number }) => void,
   setTargetId: (targetId: string | null) => void
 ) {
   const isClicked = useRef<boolean>(false);
   const targettIdRef = useRef<string | null>(null);
-  
+  const animationFrameRef = useRef<number | null>(null);
+
   const coords = useRef<{ startX: number; startY: number; lastX: number; lastY: number }>({
     startX: 0,
     startY: 0,
@@ -58,85 +61,156 @@ function useDragger(
       coords.current.lastY = target.offsetTop;
       target.style.cursor = "grab";
       target.releasePointerCapture(e.pointerId);
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (!isClicked.current) return;
 
-      let nextX = e.clientX - coords.current.startX + coords.current.lastX;
-      let nextY = e.clientY - coords.current.startY + coords.current.lastY;
-
-      if (nextX < 0) nextX = 0;
-      if (nextY < 0) nextY = 0;
-      if (nextX > container.offsetWidth - target.clientWidth)
-        nextX = container.offsetWidth - target.clientWidth;
-      if (nextY > container.offsetHeight - target.clientHeight)
-        nextY = container.offsetHeight - target.clientHeight;
-
-      const containerRect = container.getBoundingClientRect();
-      const targetRect = {
-        left: nextX,
-        right: nextX + target.clientWidth,
-        top: nextY,
-        bottom: nextY + target.clientHeight,
-      };
-      let isOverlap = false;
-
-      console.log(targetRect)
-      for (let child of otherChildren) {
-        const childRect = child.getBoundingClientRect();
-        const childLeft = childRect.left - containerRect.left;
-        const childRight = childRect.right - containerRect.left;
-        const childTop = childRect.top - containerRect.top;
-        const childBottom = childRect.bottom - containerRect.top;
-
-        // const leftToRight = targetRect.left - childRight < 0;
-        // const topToBottom = targetRect.top - childBottom < 0;
-        // const rightToLeft = childLeft - targetRect.right < 0;
-        // const bottomToTop = childTop - targetRect.bottom < 0;
-
-        // const overlap = leftToRight && topToBottom && rightToLeft && bottomToTop;
-        
-
-        // console.log("target bottom: ", targetRect.bottom , "child top: ", childTop, "target bottom - child top: ", targetRect.bottom - childTop, "target height: ", target.clientHeight);
-
-        // console.log(targetRect)
-        // if (overlap) {
-        //   isOverlap = true;
-          // let newChildLeft = childLeft;
-          // let newChildTop = childTop;
-          
-
-          // if (targetRect.right - childLeft < target.clientWidth) {
-          //   // newChildLeft = targetRect.right;
-          //   newChildLeft = targetRect.right
-          //   console.log('target', targetRect.right);
-          //   console.log('left', newChildLeft);
-          // } 
-
-          // if (targetRect.bottom - childTop < target.clientHeight ) {
-          //   // newChildTop = targetRect.bottom;
-          //   console.log('top');
-          // } 
-          
-          // if (childRight - targetRect.left < target.clientWidth) {
-          //   newChildLeft = targetRect.left - child.clientWidth;
-          //   console.log('right');
-          // }
-          
-          // if (childBottom - targetRect.top < target.clientHeight) {
-          //   newChildTop = targetRect.top - child.clientHeight;
-          //   console.log('bottom');
-          // }
-          
-          // onPositionChange(child.id, { left: newChildLeft, top: newChildTop });
-        // } else {
-        //   isOverlap = false;
-        // }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
 
-      // setPosition({ left: nextX, top: nextY });
-      onPositionChange(id, { left: nextX, top: nextY });
+      animationFrameRef.current = requestAnimationFrame(() => {
+
+          let nextX = e.clientX - coords.current.startX + coords.current.lastX;
+          let nextY = e.clientY - coords.current.startY + coords.current.lastY;
+
+          if (nextX < 0) nextX = 0;
+          if (nextY < 0) nextY = 0;
+          if (nextX > container.offsetWidth - target.clientWidth)
+            nextX = container.offsetWidth - target.clientWidth;
+          if (nextY > container.offsetHeight - target.clientHeight)
+            nextY = container.offsetHeight - target.clientHeight;
+
+          const containerRect = container.getBoundingClientRect();
+          const targetRect = {
+            left: nextX,
+            right: nextX + target.clientWidth,
+            top: nextY,
+            bottom: nextY + target.clientHeight,
+          };
+
+          for (const child of otherChildren) {
+            const childRect = child.getBoundingClientRect();
+            const childLeft = childRect.left - containerRect.left;
+            const childRight = childRect.right - containerRect.left;
+            const childTop = childRect.top - containerRect.top;
+            const childBottom = childRect.bottom - containerRect.top;
+            if (
+              targetRect.left < childRight &&
+              targetRect.right > childLeft &&
+              targetRect.top < childBottom &&
+              targetRect.bottom > childTop)
+              {
+                const pushRight = (targetRect.right - childLeft)
+                const pushLeft = childRight - targetRect.left
+                const pushUp = childBottom - targetRect.top
+                const pushDown = (targetRect.bottom - childTop)
+
+
+                if (Math.min(pushRight, pushLeft) < Math.min(pushUp, pushDown) && pushLeft < pushRight && pushUp < pushDown) {
+                  const newTop = childTop - pushLeft;
+                  const maxTop = targetRect.top - child.clientHeight;
+                  const adjustedTop = Math.max(newTop, maxTop); 
+                  onPositionChange(child.id, { 
+                    right: targetRect.left, 
+                    left: targetRect.left - child.clientWidth , 
+                    top: adjustedTop, // Smoothly move upward
+                    bottom: adjustedTop + child.clientHeight,});
+                    
+                } else if (Math.min(pushRight, pushLeft) < Math.min(pushUp, pushDown) && pushLeft < pushRight && pushUp > pushDown) {
+                  const newTop = childTop + pushLeft; // Move downward in small steps
+                  const maxTop = targetRect.bottom - child.clientHeight;
+                  const adjustedTop = Math.max(newTop, maxTop); // Prevent abrupt jump
+                  onPositionChange(child.id, {
+                    right: targetRect.left,
+                    left: targetRect.left - child.clientWidth,
+                    top: adjustedTop, // Smoothly move upward
+                    bottom: adjustedTop + child.clientHeight,});
+                }
+
+
+
+                if (Math.min(pushRight, pushLeft) < Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp < pushDown) {
+                  const newTop = childTop - pushRight;
+                  const maxTop = targetRect.top - child.clientHeight;
+                  const adjustedTop = Math.max(newTop, maxTop); 
+                  onPositionChange(child.id, { 
+                    right: targetRect.right + child.clientWidth, 
+                    left: targetRect.right, 
+                    top: adjustedTop, // Smoothly move upward
+                    bottom: adjustedTop + child.clientHeight,});
+                    
+                } else if (Math.min(pushRight, pushLeft) < Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp > pushDown) {
+                  const newTop = childTop + pushRight; // Move downward in small steps
+                  const maxTop = targetRect.bottom - child.clientHeight;
+                  const adjustedTop = Math.max(newTop, maxTop); // Prevent abrupt jump
+                  onPositionChange(child.id, {
+                    right: targetRect.right + child.clientWidth,
+                    left: targetRect.right,
+                    top: adjustedTop, // Smoothly move upward
+                    bottom: adjustedTop + child.clientHeight,});
+                }
+
+                if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft < pushRight && pushUp < pushDown) {
+                  console.log("bottom right")
+                  const newLeft = childLeft - pushUp;
+                  const maxLeft = targetRect.left - child.clientWidth;
+                  console.log(newLeft, maxLeft)
+                  const adjustedLeft = Math.max(newLeft, maxLeft); 
+                  onPositionChange(child.id, { 
+                    right: adjustedLeft + child.clientWidth, 
+                    left: adjustedLeft, 
+                    top: targetRect.top - child.clientHeight, // Smoothly move upward
+                    bottom: targetRect.top});
+                    
+                } else if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp < pushDown) {
+                  console.log("bottom left")
+                  const newLeft = childLeft + pushUp;
+                  const maxLeft = targetRect.right - child.clientWidth;
+                  const adjustedLeft = Math.max(newLeft, maxLeft); 
+                  onPositionChange(child.id, { 
+                    right: adjustedLeft + child.clientWidth, 
+                    left: adjustedLeft, 
+                    top: targetRect.top - child.clientHeight, // Smoothly move upward
+                    bottom: targetRect.top});
+                }
+
+                if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft < pushRight && pushUp > pushDown) {
+                  console.log("top right")
+                  const newLeft = childLeft - pushDown;
+                  const maxLeft = targetRect.left - child.clientWidth;
+                  console.log(newLeft, maxLeft)
+                  const adjustedLeft = Math.max(newLeft, maxLeft); 
+                  onPositionChange(child.id, { 
+                    right: adjustedLeft - child.clientWidth, 
+                    left: adjustedLeft, 
+                    top: targetRect.bottom , // Smoothly move upward
+                    bottom: targetRect.bottom + child.clientHeight});
+                    
+                } 
+                // else if (Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) && pushLeft > pushRight && pushUp > pushDown) {
+                //   console.log("top left")
+                //   const newLeft = childLeft - pushUp;
+                //   const maxLeft = targetRect.right - child.clientWidth;
+                //   const adjustedLeft = Math.max(newLeft, maxLeft); 
+                //   onPositionChange(child.id, { 
+                //     right: adjustedLeft + child.clientWidth, 
+                //     left: adjustedLeft, 
+                //     top: targetRect.top - child.clientHeight, // Smoothly move upward
+                //     bottom: targetRect.top});
+                // }
+              }
+          }
+
+          onPositionChange(id, { left: nextX, top: nextY, right: nextX + target.clientWidth, bottom: nextY + target.clientHeight })
+        
+      });
     };
 
     target.addEventListener("pointerdown", onPointerDown);
@@ -149,11 +223,14 @@ function useDragger(
       target.removeEventListener("pointerup", onPointerUp);
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerleave", onPointerUp);
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
 
     return cleanup;
-  }, [id, onPositionChange]);
-
+  }, [id, initialLeft, initialTop, initialRight, initialBottom, onPositionChange, setTargetId]);
   return { onPositionChange };
 }
 
