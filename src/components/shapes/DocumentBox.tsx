@@ -1,76 +1,82 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 import useDragger from "../../hooks/useDragger";
+import { useTarget, useAnimating } from "../context/TargetContext";
 
 interface DocumentBoxProps {
   id: string;
-  springPositions: {
-    [key: string]: {
-      left: number;
-      top: number;
-      right: number;
-      bottom: number;
-    };
-  };
-  targetId: string | null;
-  updateSpringPosition: (id: string, newPosition: Partial<{ left: number; top: number; right: number; bottom: number; className: string }>) => void;
-  updateTargetId: (newTargetId: string | null) => void;
+  position: { left: number; top: number; right: number; bottom: number; className: string };
 }
 
-const DocumentBox: React.FC<DocumentBoxProps> = ({ id, springPositions, targetId, updateSpringPosition, updateTargetId }) => {
-  const pushedPosition = springPositions[id];
-  const [localPosition, setLocalPosition] = React.useState(pushedPosition);
+const DocumentBox: React.FC<DocumentBoxProps> = ({ id, position }) => {
+  const initialPosition = useRef(position);
+  const [localPosition, setLocalPosition] = useState(initialPosition.current);
+  // Use shared contexts for target ID and animating positions
+  const { targetId, setTargetId } = useTarget();
+  const { animatingPositions, setAnimatingPosition } = useAnimating();
+  const {collisions} = useTarget();
 
-  // Determine if the current box is the target
-  const isTarget = id === targetId;
-  // Initialize spring only if this box is not the target 
+
   const [spring, api] = useSpring(() => ({
-    from: { left: localPosition.left, top: localPosition.top },
-    to: { left: pushedPosition.left, top: pushedPosition.top },
+    from: { left: initialPosition.current.left, top: initialPosition.current.top },
+    to: { left: animatingPositions.left, top: animatingPositions.top },
     config: {
-      mass: 8,
-      friction: 80,
-      tension: 200,
+      mass: 5,
+      friction: 40,
+      tension: 100,
       precision: 0.0001,
       clamp: true,
     },
-    
-  }), [pushedPosition]);
-
+  }), [initialPosition]);
   
-
-  // Update spring when position changes, only for non-targets
   useEffect(() => {
-    if (isTarget) {
-      setLocalPosition(pushedPosition);
-    }
-    if (!isTarget) {
+
+    const isColliding = targetId && collisions[targetId]?.includes(id);
+    // console.log(`Box ${id} is colliding with target ${targetId}:`, isColliding);
+
+    if (id !== targetId && isColliding) {
+      const animatingPosition = animatingPositions[id] || initialPosition.current;
       api.start({
-        from: { left: pushedPosition.left, top: pushedPosition.top },
-        to: { left: localPosition.left, top: localPosition.top },
+        from: { left: animatingPosition.left, top: animatingPosition.top },
+        to: { left: initialPosition.current.left, top: initialPosition.current.top },
         config: {
-          mass: 8,
-          friction: 80,
-          tension: 200,
+          mass: 5,
+          friction: 40,
+          tension: 100,
           precision: 0.0001,
           clamp: true,
-        }
+        },
       });
-    }
-  }, [pushedPosition, api, isTarget]);
+    } 
+  },[animatingPositions])
 
-  // Initialize dragger hook for the specific box
-  useDragger(id, pushedPosition.left, pushedPosition.top, pushedPosition.right, pushedPosition.bottom, updateSpringPosition, updateTargetId);
+  useDragger(
+    id,
+    localPosition.left,
+    localPosition.top,
+    localPosition.right,
+    localPosition.bottom,
+    (id, newPosition) => {
+      if (id === targetId) {
+        setLocalPosition(newPosition);
+        setAnimatingPosition(id, null);
+        initialPosition.current = newPosition;
+      }
+      if (id !== targetId) {
+        setAnimatingPosition(id, newPosition); // Update animating positions for non-targets
+      }
+    },
+    setTargetId,
+  );
 
-  // Render with spring for non-targets and direct position for the target
   return (
     <animated.div
       id={id}
-      className={pushedPosition.className}
+      className={id !== targetId && animatingPositions[id] ? animatingPositions[id].className : localPosition.className}
       style={{
         position: "absolute",
-        left: isTarget ? pushedPosition.left : spring.left, // Direct position for target, spring for others
-        top: isTarget ? pushedPosition.top : spring.top,   // Direct position for target, spring for others
+        left: id !== targetId && animatingPositions[id] ? spring.left : localPosition.left,
+        top: id !== targetId && animatingPositions[id] ? spring.top : localPosition.top,
       }}
     />
   );

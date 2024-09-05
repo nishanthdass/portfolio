@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useTarget } from "../components/context/TargetContext";
+
 
 function useDragger(
   id: string,
@@ -6,12 +8,14 @@ function useDragger(
   initialTop: number,
   initialRight: number,
   initialBottom: number,
-  onPositionChange: (id: string, newPosition: { left: number; top: number; right: number; bottom: number }) => void,
-  setTargetId: (targetId: string | null) => void
+  onPositionChange: (id: string, newPosition: { left: number; top: number; right: number; bottom: number; className: string }) => void,
+  setTargetId: (targetId: string | null) => void,
+  
 ) {
   // console.log(id, initialLeft, initialTop, initialRight, initialBottom);
   const isClicked = useRef<boolean>(false);
   const [targetIdQueue, setTargetIdQueue] = useState<(() => void)[]>([]);
+  const { setCollisionIds } = useTarget();
 
   const coords = useRef<{ startX: number; startY: number; lastX: number; lastY: number }>({
     startX: 0,
@@ -27,20 +31,32 @@ function useDragger(
     bottom: number;
   }
 
-  const handleCollisionWithChildren = (targetRect: Rect, containerRect: DOMRect, otherChildren: Element[]) => {
-    for (const child of otherChildren) {
+    // Function to detect collision between target and child
+  const detectCollision = (targetRect: Rect, childRect: DOMRect, containerRect: DOMRect) => {
+    const childLeft = childRect.left - containerRect.left;
+    const childRight = childRect.right - containerRect.left;
+    const childTop = childRect.top - containerRect.top;
+    const childBottom = childRect.bottom - containerRect.top;
+
+    return (
+      targetRect.left < childRight &&
+      targetRect.right > childLeft &&
+      targetRect.top < childBottom &&
+      targetRect.bottom > childTop
+    );
+  };
+
+  
+
+  const handleCollision  = (targetRect: Rect, containerRect: DOMRect, child: Element) => {
+    
       const childRect = child.getBoundingClientRect();
       const childLeft = childRect.left - containerRect.left;
       const childRight = childRect.right - containerRect.left;
       const childTop = childRect.top - containerRect.top;
       const childBottom = childRect.bottom - containerRect.top;
-
-      if (
-        targetRect.left - 5 < childRight &&
-        targetRect.right + 5 > childLeft &&
-        targetRect.top - 5 < childBottom &&
-        targetRect.bottom + 5 > childTop
-      ) {
+      
+      {
         const pushRight = targetRect.right - childLeft;
         const pushLeft = childRight - targetRect.left;
         const pushUp = childBottom - targetRect.top;
@@ -56,6 +72,7 @@ function useDragger(
             left: targetRect.left - child.clientWidth,
             top: adjustedTop,
             bottom: adjustedTop + child.clientHeight,
+            className: child.className
           });
         } else if (
           Math.min(pushRight, pushLeft) < Math.min(pushUp, pushDown) &&
@@ -70,6 +87,7 @@ function useDragger(
             left: targetRect.left - child.clientWidth,
             top: adjustedTop,
             bottom: adjustedTop + child.clientHeight,
+            className: child.className
           });
         }
 
@@ -82,6 +100,7 @@ function useDragger(
             left: targetRect.right,
             top: adjustedTop,
             bottom: adjustedTop + child.clientHeight,
+            className: child.className
           });
         } else if (
           Math.min(pushRight, pushLeft) < Math.min(pushUp, pushDown) &&
@@ -96,6 +115,7 @@ function useDragger(
             left: targetRect.right,
             top: adjustedTop,
             bottom: adjustedTop + child.clientHeight,
+            className: child.className
           });
         }
 
@@ -108,6 +128,7 @@ function useDragger(
             left: adjustedLeft,
             top: targetRect.top - child.clientHeight,
             bottom: targetRect.top,
+            className: child.className
           });
         } else if (
           Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) &&
@@ -122,6 +143,7 @@ function useDragger(
             left: adjustedLeft,
             top: targetRect.top - child.clientHeight,
             bottom: targetRect.top,
+            className: child.className
           });
         }
 
@@ -134,6 +156,7 @@ function useDragger(
             left: adjustedLeft,
             top: targetRect.bottom,
             bottom: targetRect.bottom + child.clientHeight,
+            className: child.className
           });
         } else if (
           Math.min(pushRight, pushLeft) > Math.min(pushUp, pushDown) &&
@@ -148,10 +171,26 @@ function useDragger(
             left: adjustedLeft,
             top: targetRect.bottom,
             bottom: targetRect.bottom + child.clientHeight,
+            className: child.className
           });
         }
+      }  
+  };
+  
+
+  const handleCollisionWithChildren = (targetRect: Rect, containerRect: DOMRect, otherChildren: Element[]) => {
+    const collisionIds: string[] = [];
+
+    for (const child of otherChildren) {
+      const childRect = child.getBoundingClientRect();
+
+      // Use detectCollision to check for collision
+      if (detectCollision(targetRect, childRect, containerRect)) {
+        collisionIds.push(child.id);
+        handleCollision(targetRect, containerRect, child);
       } 
     }
+    setCollisionIds(id, collisionIds); // Update context with collision IDs
   };
 
   const processQueue = () => {
@@ -180,6 +219,7 @@ function useDragger(
         child.style.top = `${child.offsetTop}px`;
       }
     });
+    
 
     const onPointerDown = (e: PointerEvent) => {
       isClicked.current = true;
@@ -229,7 +269,7 @@ function useDragger(
         ...prevQueue, 
         () => handleCollisionWithChildren(targetRect, containerRect, otherChildren) // Add function to queue
       ]);
-      onPositionChange(id, { left: nextX, top: nextY, right: nextX + target.clientWidth, bottom: nextY + target.clientHeight });
+      onPositionChange(id, { left: nextX, top: nextY, right: nextX + target.clientWidth, bottom: nextY + target.clientHeight, className: target.className });
     };
 
     target.addEventListener("pointerdown", onPointerDown);

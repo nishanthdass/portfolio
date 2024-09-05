@@ -7,6 +7,7 @@ function usePositionAnimation() {
     "document-box-2": { left: 200, top: 250, right: 260, bottom: 310, className: "box box-2" },
   });
 
+  // console.log(springPositions["document-box-2"]);
   const [targetId, setTargetId] = useState<string | null>(null);
 
   // Function to update positions
