@@ -6,9 +6,10 @@ import { useTarget, useAnimating } from "../context/TargetContext";
 interface DocumentBoxProps {
   id: string;
   position: { left: number; top: number; right: number; bottom: number; className: string };
+  children: React.ReactNode;
 }
 
-const DocumentBox: React.FC<DocumentBoxProps> = ({ id, position }) => {
+const DocumentBox: React.FC<DocumentBoxProps> = ({ id, position, children }) => {
   const initialPosition = useRef(position);
   const [localPosition, setLocalPosition] = useState(initialPosition.current);
   // Use shared contexts for target ID and animating positions
@@ -17,7 +18,8 @@ const DocumentBox: React.FC<DocumentBoxProps> = ({ id, position }) => {
   const {collisions} = useTarget();
 
 
-  const [spring, api] = useSpring(() => ({
+  const [spring, api] = useSpring(() => (
+    {
     from: { left: initialPosition.current.left, top: initialPosition.current.top },
     to: { left: animatingPositions.left, top: animatingPositions.top },
     config: {
@@ -27,7 +29,7 @@ const DocumentBox: React.FC<DocumentBoxProps> = ({ id, position }) => {
       precision: 0.0001,
       clamp: true,
     },
-  }), [initialPosition]);
+  }), [initialPosition, targetId]);
   
   useEffect(() => {
 
@@ -78,7 +80,9 @@ const DocumentBox: React.FC<DocumentBoxProps> = ({ id, position }) => {
         left: id !== targetId && animatingPositions[id] ? spring.left : localPosition.left,
         top: id !== targetId && animatingPositions[id] ? spring.top : localPosition.top,
       }}
-    />
+    >
+          {children} {/* Add this line to render any child elements */}
+    </animated.div>
   );
 };
 
