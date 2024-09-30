@@ -63,7 +63,7 @@ const FlexboxProjectsComponent: React.FC<FlexboxProjectsComponentProps> = ({
                     </div>
                 )}
                 <div
-                    className={`${hiddenDivClassName} ${isProjHidden ? 'visible' : ''}`}
+                    className={`${hiddenDivClassName} ${isProjHidden ? 'visible' : 'visible'}`}
                 >
                     {renderComponent()}
                 </div>

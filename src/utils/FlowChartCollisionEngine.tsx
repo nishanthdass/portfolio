@@ -1,25 +1,29 @@
 import { useEffect, useRef } from 'react';
-import { Engine, Render, Runner, World} from 'matter-js';
+import Matter, { Engine, Render, Runner, World, Bodies, Composite } from 'matter-js';
+import useMatterDragger from '../hooks/useMatterDragger';
 
 function FlowChartCollisionEngine({ children }) {
   const sceneRef = useRef(null);
   const engineRef = useRef(Engine.create());
-  const renderRef = useRef<Render | null>(null);
-  const runnerRef = useRef<Runner | null>(null);
+  const renderRef = useRef(null);
+  const runnerRef = useRef(null);
+  const compositeRef = useRef(Composite.create()); // Initialize the composite
 
   useEffect(() => {
     const parentElement = sceneRef.current;
 
-    // Function to initialize the renderer size based on parent element size
     const initializeRenderer = () => {
       if (!parentElement) return;
+      const canvasStyle = window.getComputedStyle(parentElement);
+      const width = parseFloat(canvasStyle.width);
+      const height = parseFloat(canvasStyle.height);
 
       renderRef.current = Render.create({
         element: parentElement,
         engine: engineRef.current,
         options: {
-          width: parentElement.clientWidth,
-          height: parentElement.clientHeight,
+          width: width,
+          height: height,
           wireframes: false,
           pixelRatio: window.devicePixelRatio,
         },
@@ -28,14 +32,37 @@ function FlowChartCollisionEngine({ children }) {
 
     initializeRenderer();
 
-    // Initialize the runner
     runnerRef.current = Runner.create();
 
     // Run the engine and the renderer
     Runner.run(runnerRef.current, engineRef.current);
     Render.run(renderRef.current);
 
-    // Update render size on window resize
+    // Add the composite to the world once on initial render
+    World.add(engineRef.current.world, compositeRef.current);
+
+    const adjustGroundPosition = () => {
+      if (renderRef.current && sceneRef.current) {
+        const canvasStyle = window.getComputedStyle(renderRef.current.canvas);
+        const canvasWidth = parseFloat(canvasStyle.width);
+        const canvasHeight = parseFloat(canvasStyle.height);
+        
+        const ground = Bodies.rectangle(
+          canvasWidth / 2,
+          canvasHeight - 25,
+          canvasWidth,
+          50,
+          { isStatic: true }
+        );
+
+        // Add the ground to the composite
+        Composite.add(compositeRef.current, ground);
+      }
+    };
+
+    adjustGroundPosition(); // Initial setup for ground
+
+    // Handle window resize
     const handleResize = () => {
       if (renderRef.current) {
         const { clientWidth, clientHeight } = parentElement;
@@ -45,14 +72,13 @@ function FlowChartCollisionEngine({ children }) {
         renderRef.current.bounds.max.y = clientHeight;
         renderRef.current.options.width = clientWidth;
         renderRef.current.options.height = clientHeight;
-        Render.setPixelRatio(renderRef.current, window.devicePixelRatio); // added this
-
+        Render.setPixelRatio(renderRef.current, window.devicePixelRatio);
+        adjustGroundPosition();
       }
     };
 
     window.addEventListener('resize', handleResize);
 
-    // Cleanup on component unmount
     return () => {
       Render.stop(renderRef.current);
       Runner.stop(runnerRef.current);
@@ -67,7 +93,7 @@ function FlowChartCollisionEngine({ children }) {
   // Render the container div with full size
   return (
     <div ref={sceneRef} style={{ width: '100%', height: '100%', border: '1px solid black' }}>
-      {children(engineRef.current, renderRef.current)}
+      {children && typeof children === 'function' ? children(engineRef.current, renderRef.current, compositeRef.current) : null}
     </div>
   );
 }
